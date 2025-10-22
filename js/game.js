@@ -751,7 +751,7 @@ class MemoryGame extends Phaser.Scene {
             `Puntuación Final: ${this.score}\n\n\n` +
             `⏱️ Tiempo restante: ${Math.floor(this.timeRemaining / 60)}:${(this.timeRemaining % 60).toString().padStart(2, '0')}\n\n\n` +
             `🖱️ Clicks: ${this.clicks}\n\n\n` +
-            `✨ Regalo: ${timeRegalo + clickRegalo} pts`, {
+            `✨ Bonus: ${timeBonus + clickBonus} pts`, {
             fontSize: '20px',
             color: '#ffffff',
             align: 'center',
