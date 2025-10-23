@@ -210,7 +210,9 @@ class MemoryGame extends Phaser.Scene {
         });
 
       
-        okButton.on('pointerdown', () => {
+        okButton.on('pointerdown', async () => {
+            await activarPantallaCompleta();
+
             this.playSound(523, 0.15);
             
             this.tweens.add({
@@ -873,6 +875,7 @@ class MemoryGame extends Phaser.Scene {
             }
         });
     }
+    
 }
 
 const config = {
@@ -882,6 +885,28 @@ const config = {
     parent: 'game-container',
     backgroundColor: '#1a202c',
     scene: MemoryGame
+    
 };
 
 const game = new Phaser.Game(config);
+// === Función para activar pantalla completa ===
+async function activarPantallaCompleta() {
+  const elemento = document.documentElement; // toda la página
+
+  if (elemento.requestFullscreen) {
+    await elemento.requestFullscreen();
+  } else if (elemento.webkitRequestFullscreen) {
+    await elemento.webkitRequestFullscreen(); // Safari
+  } else if (elemento.msRequestFullscreen) {
+    await elemento.msRequestFullscreen();
+  }
+
+  // Intentar bloquear orientación horizontal
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock('landscape');
+    }
+  } catch (e) {
+    console.warn('No se pudo bloquear orientación:', e);
+  }
+}
