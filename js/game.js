@@ -1002,7 +1002,7 @@ class MemoryGame extends Phaser.Scene {
             buttonBorder.setStrokeStyle(3, 0xa29bfe, 1);
             buttonBorder.setDepth(1002);
             
-            buttonText = this.add.text(700, 600, '🏆 LEADERBOARD', {
+            buttonText = this.add.text(700, 600, '🏆 TABLA DE CLASIFICACIÓN', {
                 fontSize: '24px',
                 fontStyle: 'bold',
                 color: '#ffffff',
@@ -1167,7 +1167,7 @@ class MemoryGame extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5).setDepth(1002);
 
-        const subtitle = this.add.text(700, 360, 'Nuevos retos y lugares por descubrir.\n¿Listo para la Parte 2?', {
+        const subtitle = this.add.text(700, 360, 'Nuevos retos.\n¿Listo para la Parte 2?', {
             fontSize: '20px',
             color: '#3b1f10',
             align: 'center'
