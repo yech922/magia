@@ -92,83 +92,111 @@ class MemoryGame extends Phaser.Scene {
         }
     }
 
-    create() {
-        // Fondo dinámico según nivel
-        const bgKey = `bg${this.currentLevel}`;
-        const bgImage = this.add.image(700, 400, bgKey);
-        bgImage.setDisplaySize(1400, 800);
-        
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0xb97438, 0.25);
-        graphics.fillRect(0, 0, 1400, 100);
-        graphics.fillRect(0, 700, 1400, 100);
+   create() {
+    // === Fondo adaptativo según el nivel ===
+    const bgKey = `bg${this.currentLevel}`;
+    const bgImage = this.add.image(0, 0, bgKey).setOrigin(0);
+    bgImage.setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
 
-        // Título
-        this.titleShadow = this.add.text(702, 32, `RINCONES CON MAGIA - NIVEL ${this.currentLevel}`, {
+    // === Ajuste responsivo (para pantallas chicas o grandes) ===
+    const scaleX = this.sys.game.config.width / 1400;
+    const scaleY = this.sys.game.config.height / 800;
+    const uiScale = Math.min(scaleX, scaleY);
+
+    // === Banda superior decorativa ===
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0xb97438, 0.25);
+    graphics.fillRect(0, 0, this.sys.game.config.width, 100 * uiScale);
+    graphics.fillRect(0, this.sys.game.config.height - 100 * uiScale, this.sys.game.config.width, 100 * uiScale);
+
+    // === Título del juego ===
+    this.titleShadow = this.add.text(
+        this.sys.game.config.width / 2 + 2,
+        32 * uiScale,
+        `RINCONES CON MAGIA - NIVEL ${this.currentLevel}`,
+        {
             fontFamily: 'Lobster',
-            fontSize: this.currentLevel === 3 ? '48px' : '50px',
+            fontSize: `${48 * uiScale}px`,
             color: '#3b1f10'
-        }).setOrigin(0.5).setAlpha(0.4);
+        }
+    ).setOrigin(0.5).setAlpha(0.4);
 
-        this.add.text(700, 30, `RINCONES CON MAGIA - NIVEL ${this.currentLevel}`, {
+    this.add.text(
+        this.sys.game.config.width / 2,
+        30 * uiScale,
+        `RINCONES CON MAGIA - NIVEL ${this.currentLevel}`,
+        {
             fontFamily: 'Lobster',
-            fontSize: this.currentLevel === 3 ? '48px' : '50px',
+            fontSize: `${48 * uiScale}px`,
             color: '#6a2f2f',
             stroke: '#ffffff',
             strokeThickness: 2
-        }).setOrigin(0.5);
+        }
+    ).setOrigin(0.5);
 
-        const statsBg = this.add.rectangle(700, 85, 1300, 60, 0xb97438, 0.85);
-        statsBg.setStrokeStyle(3, 0x3b1f10, 0.9);
+    // === Barra de estadísticas responsiva ===
+    const statsY = 85 * uiScale;
+    const statsBg = this.add.rectangle(
+        this.sys.game.config.width / 2,
+        statsY,
+        this.sys.game.config.width * 0.9,
+        60 * uiScale,
+        0xb97438,
+        0.85
+    ).setStrokeStyle(3, 0x3b1f10);
 
-        // Score / Clicks / Tiempo
-        this.scoreText = this.add.text(100, 85, `⭐ Puntos: ${this.score}`, {
+    this.scoreText = this.add.text(80 * uiScale, statsY, `⭐ Puntos: ${this.score}`, {
+        fontFamily: 'Cormorant Garamond',
+        fontSize: `${22 * uiScale}px`,
+        color: '#3b1f10',
+        stroke: '#ffffff',
+        strokeThickness: 2
+    }).setOrigin(0, 0.5);
+
+    this.clicksText = this.add.text(this.sys.game.config.width / 2, statsY, '🖱️ Clicks: 0', {
+        fontFamily: 'Cormorant Garamond',
+        fontSize: `${22 * uiScale}px`,
+        color: '#6a2f2f',
+        stroke: '#ffffff',
+        strokeThickness: 2
+    }).setOrigin(0.5);
+
+    const initialTime = this.currentLevel === 4 ? '2:00' : '1:00';
+    this.timeText = this.add.text(
+        this.sys.game.config.width - 80 * uiScale,
+        statsY,
+        `⏱️ Tiempo: ${initialTime}`,
+        {
             fontFamily: 'Cormorant Garamond',
-            fontSize: '24px',
-            color: '#3b1f10',
-            stroke: '#ffffff',
-            strokeThickness: 2
-        }).setOrigin(0, 0.5);
-
-        this.clicksText = this.add.text(700, 85, '🖱️ Clicks: 0', {
-            fontFamily: 'Cormorant Garamond',
-            fontSize: '24px',
-            color: '#6a2f2f',
-            stroke: '#ffffff',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-
-        const initialTime = this.currentLevel === 4 ? '2:00' : '1:00';
-        this.timeText = this.add.text(1300, 85, `⏱️ Tiempo: ${initialTime}`, {
-            fontFamily: 'Cormorant Garamond',
-            fontSize: '24px',
+            fontSize: `${22 * uiScale}px`,
             color: '#e3a857',
             stroke: '#3b1f10',
             strokeThickness: 2
-        }).setOrigin(1, 0.5);
-
-        // Sonidos
-        this.createSounds();
-
-        // Temporizador (pausado hasta que empiece el juego real)
-        this.timeEvent = this.time.addEvent({
-            delay: 1000,
-            callback: this.updateTime,
-            callbackScope: this,
-            loop: true,
-            paused: true
-        });
-
-        // Si aún no está listo el jugador mostramos la pantalla inicial de registro/selección
-        if (!this.playerReady) {
-            this.showPlayerSetup();
-            return; // Esperamos que el jugador inicie
         }
+    ).setOrigin(1, 0.5);
 
-        // Si jugador ya listo, creamos tablero
-        this.createBoard();
-        this.showInitialAlert(); // Mensaje de inicio por nivel
+    // === Sonidos y temporizador ===
+    this.createSounds();
+
+    this.timeEvent = this.time.addEvent({
+        delay: 1000,
+        callback: this.updateTime,
+        callbackScope: this,
+        loop: true,
+        paused: true
+    });
+
+    // === Mostrar pantalla de jugador o iniciar directamente ===
+    if (!this.playerReady) {
+        this.showPlayerSetup();
+        return; // Esperar a que el jugador se registre
     }
+
+    // Si el jugador ya está listo
+    this.createBoard();
+    this.showInitialAlert();
+}
+
 
     // ---------------------------
     // Pantalla inicial con nombre y selección de video-personaje
