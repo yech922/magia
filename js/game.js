@@ -175,7 +175,7 @@ class MemoryGame extends Phaser.Scene {
         }
     ).setOrigin(1, 0.5);
 
-    // === Sonidos y temporizador ===
+    
     this.createSounds();
 
     this.timeEvent = this.time.addEvent({
@@ -184,25 +184,23 @@ class MemoryGame extends Phaser.Scene {
         callbackScope: this,
         loop: true,
         paused: true
-    });
+    });//sonidos
 
-    // === Mostrar pantalla de jugador o iniciar directamente ===
+    
     if (!this.playerReady) {
         this.showPlayerSetup();
-        return; // Esperar a que el jugador se registre
+        return; 
     }
 
-    // Si el jugador ya está listo
+    
     this.createBoard();
     this.showInitialAlert();
 }
 
 
-    // ---------------------------
-    // Pantalla inicial con nombre y selección de video-personaje
-    // ---------------------------
+   
     showPlayerSetup() {
-        // Crear overlay DOM sobre el canvas
+     
         const parent = document.getElementById('game-container');
         const existing = document.getElementById('player-setup-overlay');
         if (existing) existing.remove();
@@ -233,7 +231,7 @@ class MemoryGame extends Phaser.Scene {
             </div>
         `;
 
-        // Generar 5 videos en miniatura para elegir
+        
         const choicesContainer = overlay.querySelector('#character-choices');
         
         // Nombres de los personajes
@@ -268,21 +266,21 @@ class MemoryGame extends Phaser.Scene {
             wrap.appendChild(label);
             choicesContainer.appendChild(wrap);
 
-            // click sobre video -> seleccionar
+          
             vid.addEventListener('click', () => {
-                // marcar visualmente
+            
                 document.querySelectorAll('#character-choices video').forEach(v => {
                     v.style.border = '3px solid transparent';
                 });
                 vid.style.border = '3px solid #ffd700';
-                // guardar índice
+                
                 this.playerCharacter = i;
             });
         }
 
         parent.appendChild(overlay);
 
-        // Botón Start
+       
         const startBtn = document.getElementById('start-game-btn');
         startBtn.addEventListener('click', () => {
             const nameInput = document.getElementById('player-name-input');
@@ -295,21 +293,19 @@ class MemoryGame extends Phaser.Scene {
                 alert('Selecciona un personaje (video).');
                 return;
             }
-            // Guardar y cerrar overlay
+           
             this.playerName = name;
             this.playerReady = true;
             const el = document.getElementById('player-setup-overlay');
             if (el) el.remove();
 
-            // Iniciamos el juego por primera vez
+            
             this.createBoard();
             this.showInitialAlert();
         });
     }
 
-    // ---------------------------
-    // Panel inicial por nivel
-    // ---------------------------
+   
     showInitialAlert() {
         const overlay = this.add.rectangle(700, 400, 1400, 800, 0x000000, 0.85);
         overlay.setDepth(1000);
@@ -423,9 +419,7 @@ class MemoryGame extends Phaser.Scene {
         oscillator.stop(this.audioContext.currentTime + duration);
     }
 
-    // ---------------------------
-    // CREACIÓN DE TABLERO
-    // ---------------------------
+   //cuadro de cartas
     createBoard() {
         let cardTypes, shuffled;
 
@@ -725,78 +719,206 @@ class MemoryGame extends Phaser.Scene {
         }
     }
 
-    checkMatch() {
-        const [card1, card2] = this.flippedCards;
+  checkMatch() {
+    const [card1, card2] = this.flippedCards;
+    if (!this.errors) this.errors = 0; // contador de errores
 
-        if (card1.cardType === card2.cardType) {
-            // MATCH
-            card1.isMatched = true;
-            card2.isMatched = true;
-            this.matchedPairs++;
-            this.score += 100;
-            this.scoreText.setText(`⭐ Puntos: ${this.score}`);
+    // === función auxiliar para mostrar íconos, mensajes y sonidos ===
+    const showFeedback = (emoji, message, color = '#fff', soundType = 'none') => {
+        // mostrar ícono + mensaje
+        const feedback = this.add.text(700, 400, `${emoji}\n${message}`, {
+            fontSize: '52px',
+            align: 'center',
+            fontStyle: 'bold',
+            color: color,
+            stroke: '#000',
+            strokeThickness: 5,
+            fontFamily: 'Comic Sans MS'
+        }).setOrigin(0.5).setDepth(2000).setAlpha(0).setScale(0);
 
-            this.playSound(523, 0.15);
-            this.time.delayedCall(80, () => this.playSound(659, 0.15));
-            this.time.delayedCall(160, () => this.playSound(784, 0.2));
+        // animación
+        this.tweens.add({
+            targets: feedback,
+            alpha: 1,
+            scale: 1.3,
+            duration: 300,
+            ease: 'Back.easeOut',
+            yoyo: true,
+            hold: 800,
+            onStart: () => {
+                // reproducir sonido al aparecer
+                this.playFeedbackSound(soundType);
+            },
+            onComplete: () => {
+                this.tweens.add({
+                    targets: feedback,
+                    alpha: 0,
+                    duration: 400,
+                    onComplete: () => feedback.destroy()
+                });
+            }
+        });
+    };
 
-            this.tweens.add({
-                targets: [card1, card2],
-                scale: 1.15,
-                angle: 360,
-                duration: 400,
-                ease: 'Back.easeOut'
-            });
+    // === función para sonidos 
+    this.playFeedbackSound = (type) => {
+        switch (type) {
+            case 'happy':
+                
+                [523, 659, 784].forEach((freq, i) => {
+                    this.time.delayedCall(i * 150, () => this.playSound(freq, 0.15, 'triangle'));
+                });
+                break;
+            case 'sad':
+                
+                [392, 330, 261].forEach((freq, i) => {
+                    this.time.delayedCall(i * 150, () => this.playSound(freq, 0.2, 'sine'));
+                });
+                break;
+            case 'angry':
+                
+                for (let i = 0; i < 3; i++) {
+                    this.time.delayedCall(i * 180, () => this.playSound(120, 0.25, 'square'));
+                    this.time.delayedCall(i * 180 + 90, () => this.playSound(250, 0.25, 'square'));
+                }
+                break;
+            case 'celebrate':
+    // 🎺 Melodía estilo mariachi mexicano festivo
+    const mariachiMelody = [
+        { freq: 523, dur: 0.15 }, // Do5
+        { freq: 659, dur: 0.15 }, // Mi5
+        { freq: 784, dur: 0.18 }, // Sol5
+        { freq: 880, dur: 0.15 }, // La5
+        { freq: 988, dur: 0.18 }, // Si5
+        { freq: 1046, dur: 0.20 }, // Do6
+        { freq: 988, dur: 0.15 }, // Si5
+        { freq: 880, dur: 0.20 }, // La5
+        { freq: 784, dur: 0.25 }  // Sol5 final
+    ];
 
-            card1.cardBg.setStrokeStyle(3, 0x48bb78);
-            card2.cardBg.setStrokeStyle(3, 0x48bb78);
+    mariachiMelody.forEach((note, i) => {
+        this.time.delayedCall(i * 130, () => {
+            this.playSound(note.freq, note.dur, 'sawtooth');
+        });
+    });
 
-            const totalPairs = 5;
-            if (this.matchedPairs === totalPairs) {
-                this.time.delayedCall(1000, () => this.gameWon());
+    // 🎶 Acompañamiento tipo bajo (square)
+    const bassNotes = [196, 220, 247, 262, 220];
+    bassNotes.forEach((freq, i) => {
+        this.time.delayedCall(i * 260, () => {
+            this.playSound(freq, 0.25, 'square');
+        });
+    });
+
+    // 🌟 Final con trino rápido (como trompeta brillando)
+    const trino = [1046, 988, 1046, 988, 1046];
+    this.time.delayedCall(1500, () => {
+        trino.forEach((freq, i) => {
+            this.time.delayedCall(i * 80, () => this.playSound(freq, 0.1, 'triangle'));
+        });
+    });
+    break;
+
+        }
+    };
+
+    // === verificar coincidencia ===
+    if (card1.cardType === card2.cardType) {
+        // ✅ PAREJA CORRECTA
+        card1.isMatched = true;
+        card2.isMatched = true;
+        this.matchedPairs++;
+        this.score += 100;
+        this.scoreText.setText(`⭐ Puntos: ${this.score}`);
+
+        // animación de cartas
+        this.tweens.add({
+            targets: [card1, card2],
+            scale: 1.15,
+            angle: 360,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
+
+        card1.cardBg.setStrokeStyle(3, 0x48bb78);
+        card2.cardBg.setStrokeStyle(3, 0x48bb78);
+
+        // mostrar ícono feliz o confeti
+        if (this.matchedPairs > 3) {
+            showFeedback('🎉', '¡Muy bien!', '#ffd700', 'celebrate');
+
+            // efecto de confeti visual
+            for (let i = 0; i < 25; i++) {
+                const confetti = this.add.text(700, 400, '✨', {
+                    fontSize: '24px',
+                    color: '#fff'
+                }).setDepth(1999);
+                this.tweens.add({
+                    targets: confetti,
+                    x: 700 + Phaser.Math.Between(-300, 300),
+                    y: 800,
+                    alpha: 0,
+                    rotation: Phaser.Math.FloatBetween(0, Math.PI * 2),
+                    duration: Phaser.Math.Between(1000, 2000),
+                    delay: i * 60,
+                    onComplete: () => confetti.destroy()
+                });
             }
         } else {
-            // NO MATCH -> RESTAR 100 PUNTOS
-            this.score = Math.max(0, this.score - 100);
-            this.scoreText.setText(`⭐ Puntos: ${this.score}`);
-
-            this.playSound(200, 0.3, 'sawtooth');
-
-            [card1, card2].forEach(card => {
-                this.tweens.add({
-                    targets: card,
-                    x: card.x + 5,
-                    duration: 50,
-                    yoyo: true,
-                    repeat: 3
-                });
-            });
-
-            [card1, card2].forEach(card => {
-                this.tweens.add({
-                    targets: card,
-                    scaleX: 0,
-                    duration: 150,
-                    delay: 400,
-                    onComplete: () => {
-                        card.cardImage.setTexture('cardBack');
-                        card.cardImage.setDisplaySize(195, 195);
-                        card.isFlipped = false;
-                        card.cardBg.setStrokeStyle(3, 0x4a5568);
-
-                        this.tweens.add({
-                            targets: card,
-                            scaleX: 1,
-                            duration: 150
-                        });
-                    }
-                });
-            });
+            showFeedback('😊', '¡Excelente!', '#48bb78', 'happy');
         }
 
-        this.flippedCards = [];
-        this.canClick = true;
+        // comprobar si ganó
+        const totalPairs = 5;
+        if (this.matchedPairs === totalPairs) {
+            this.time.delayedCall(1000, () => this.gameWon());
+        }
+
+    } else {
+        // ❌ INCORRECTO
+        this.errors++;
+        this.score = Math.max(0, this.score - 100);
+        this.scoreText.setText(`⭐ Puntos: ${this.score}`);
+
+        // animación de sacudida
+        [card1, card2].forEach(card => {
+            this.tweens.add({
+                targets: card,
+                x: card.x + 5,
+                duration: 50,
+                yoyo: true,
+                repeat: 3
+            });
+        });
+
+        // revertir cartas
+        [card1, card2].forEach(card => {
+            this.tweens.add({
+                targets: card,
+                scaleX: 0,
+                duration: 150,
+                delay: 400,
+                onComplete: () => {
+                    card.cardImage.setTexture('cardBack');
+                    card.cardImage.setDisplaySize(195, 195);
+                    card.isFlipped = false;
+                    card.cardBg.setStrokeStyle(3, 0x4a5568);
+                    this.tweens.add({ targets: card, scaleX: 1, duration: 150 });
+                }
+            });
+        });
+
+        // mostrar mensajes según errores
+        if (this.errors > 3) {
+            showFeedback('😡', '¡Pon atención!', '#ff4040', 'angry');
+        } else {
+            showFeedback('😢', 'Intenta de nuevo', '#ffcc00', 'sad');
+        }
     }
+
+    this.flippedCards = [];
+    this.canClick = true;
+}
 
     updateTime() {
         if (this.gameEnded) return;
@@ -835,11 +957,11 @@ class MemoryGame extends Phaser.Scene {
         const overlay = this.add.rectangle(700, 400, 1400, 800, 0x000000, 0.75);
         overlay.setDepth(1000);
 
-        // Panel con gradiente aesthetic
+        
         const losePanel = this.add.rectangle(700, 400, 550, 550, 0x1a1a2e, 0.95);
         losePanel.setDepth(1001);
         
-        // Bordes con efecto neón
+       
         const border1 = this.add.rectangle(700, 400, 550, 550);
         border1.setStrokeStyle(4, 0xff6b9d, 1);
         border1.setDepth(1001);
@@ -1327,7 +1449,7 @@ class MemoryGame extends Phaser.Scene {
                 item.style.alignItems = 'center';
                 item.style.gap = '10px';
                 
-                // Video del personaje
+                // Video del personaje en la tabla
                 const vid = document.createElement('video');
                 vid.src = `assets/images/char${e.character}.mp4`;
                 vid.width = 60;
